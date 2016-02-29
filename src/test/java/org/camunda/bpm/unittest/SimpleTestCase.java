@@ -15,8 +15,11 @@ package org.camunda.bpm.unittest;
 import org.camunda.bpm.engine.runtime.ProcessInstance;
 import org.camunda.bpm.engine.test.Deployment;
 import org.camunda.bpm.engine.test.ProcessEngineRule;
+import org.camunda.bpm.engine.task.Task;
 
 import static org.camunda.bpm.engine.test.assertions.ProcessEngineTests.*;
+
+import java.util.*;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -30,22 +33,83 @@ public class SimpleTestCase {
   @Rule
   public ProcessEngineRule rule = new ProcessEngineRule();
 
+  final String taskTop = "UserTask_1iren47";
+  final String taskBottom = "UserTask_0ze0ci5";
+
   @Test
   @Deployment(resources = {"testProcess.bpmn"})
-  public void shouldExecuteProcess() {
-    // Given we create a new process instance
-    ProcessInstance processInstance = runtimeService().startProcessInstanceByKey("testProcess");
-    // Then it should be active
-    assertThat(processInstance).isActive();
-    // And it should be the only instance
-    assertThat(processInstanceQuery().count()).isEqualTo(1);
-    // And there should exist just a single task within that process instance
-    assertThat(task(processInstance)).isNotNull();
+  public void onlyTop() {
+    ProcessInstance processInstance = setUp(true, false);
 
-    // When we complete that task
+    // Complete Task 1
     complete(task(processInstance));
+
+    // Expecting Task Top but no Task Bottom
+    assertThat(task(taskTop, processInstance)).isNotNull();
+    assertThat(task(taskBottom, processInstance)).isNull();
+
+    // Complete Task Top
+    complete(task(taskTop, processInstance));
+
     // Then the process instance should be ended
     assertThat(processInstance).isEnded();
+  }
+
+  @Test
+  @Deployment(resources = {"testProcess.bpmn"})
+  public void onlyBottom() {
+    ProcessInstance processInstance = setUp(false, true);
+
+    // Complete Task 1
+    complete(task(processInstance));
+
+    // Expecting Task Bottom but no Task Top
+    assertThat(task(taskTop, processInstance)).isNull();
+    assertThat(task(taskBottom, processInstance)).isNotNull();
+
+    // Complete Task
+    complete(task(taskBottom, processInstance));
+
+    // Then the process instance should be ended
+    assertThat(processInstance).isEnded();
+  }
+
+  @Test
+  @Deployment(resources = {"testProcess.bpmn"})
+  public void both() {
+    ProcessInstance processInstance = setUp(true, true);
+
+    // Complete Task 1
+    complete(task(processInstance));
+
+    // Expecting Task Bottom but no Task Top
+    assertThat(task(taskTop, processInstance)).isNotNull();
+    assertThat(task(taskBottom, processInstance)).isNotNull();
+
+    // Complete Tasks
+    complete(task(taskTop, processInstance));
+    assertThat(processInstance).isNotEnded();
+    complete(task(taskBottom, processInstance));
+
+    // Then the process instance should be ended
+    assertThat(processInstance).isEnded();
+  }
+
+  @Test(expected = org.camunda.bpm.engine.ProcessEngineException.class)
+  @Deployment(resources = {"testProcess.bpmn"})
+  public void none() {
+    ProcessInstance processInstance = setUp(false, false);
+
+    // Complete Task 1
+    complete(task(processInstance));
+  }
+
+  private ProcessInstance setUp(final boolean shouldGoTop, final boolean shouldGoBottom) {
+    final Map<String, Object> variableMap = new HashMap<String, Object>();
+    variableMap.put("shouldGoTop", shouldGoTop);
+    variableMap.put("shouldGoBottom", shouldGoBottom);
+
+    return runtimeService().startProcessInstanceByKey("Process_1", variableMap);
   }
 
 }
