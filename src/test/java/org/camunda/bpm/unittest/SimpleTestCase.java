@@ -15,11 +15,18 @@ package org.camunda.bpm.unittest;
 import org.camunda.bpm.engine.runtime.ProcessInstance;
 import org.camunda.bpm.engine.test.Deployment;
 import org.camunda.bpm.engine.test.ProcessEngineRule;
-
-import static org.camunda.bpm.engine.test.assertions.ProcessEngineTests.*;
-
 import org.junit.Rule;
 import org.junit.Test;
+
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import static java.util.concurrent.CompletableFuture.runAsync;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.IntStream.range;
+import static org.camunda.bpm.engine.test.assertions.ProcessEngineAssertions.assertThat;
+import static org.camunda.bpm.engine.test.assertions.ProcessEngineTests.managementService;
+import static org.camunda.bpm.engine.test.assertions.ProcessEngineTests.runtimeService;
 
 /**
  * @author Daniel Meyer
@@ -27,25 +34,29 @@ import org.junit.Test;
  */
 public class SimpleTestCase {
 
-  @Rule
-  public ProcessEngineRule rule = new ProcessEngineRule();
+    @Rule
+    public ProcessEngineRule rule = new ProcessEngineRule();
 
-  @Test
-  @Deployment(resources = {"testProcess.bpmn"})
-  public void shouldExecuteProcess() {
-    // Given we create a new process instance
-    ProcessInstance processInstance = runtimeService().startProcessInstanceByKey("testProcess");
-    // Then it should be active
-    assertThat(processInstance).isActive();
-    // And it should be the only instance
-    assertThat(processInstanceQuery().count()).isEqualTo(1);
-    // And there should exist just a single task within that process instance
-    assertThat(task(processInstance)).isNotNull();
+    @Test
+    @Deployment(resources = {"testProcess.bpmn"})
+    public void logsExceptionThreeTimes() throws Exception {
+        managementService().suspendJobByProcessDefinitionKey("testProcess");
+        final List<ProcessInstance> instances = range(0, 50)
+                .mapToObj($ -> runtimeService().startProcessInstanceByKey("testProcess"))
+                .collect(toList());
 
-    // When we complete that task
-    complete(task(processInstance));
-    // Then the process instance should be ended
-    assertThat(processInstance).isEnded();
-  }
+        managementService().activateJobByProcessDefinitionKey("testProcess");
+        runAsync(pollInstanceFinished()).get(20, TimeUnit.SECONDS);
+
+        instances.forEach(instance -> assertThat(instance).isEnded());
+    }
+
+    private Runnable pollInstanceFinished() {
+        return () -> {
+            while (runtimeService().createProcessInstanceQuery().active().count() > 0L) {
+                // no operation
+            }
+        };
+    }
 
 }
