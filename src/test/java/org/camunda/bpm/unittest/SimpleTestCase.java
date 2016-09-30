@@ -12,14 +12,19 @@
  */
 package org.camunda.bpm.unittest;
 
-import org.camunda.bpm.engine.runtime.ProcessInstance;
+import org.camunda.bpm.engine.runtime.Incident;
 import org.camunda.bpm.engine.test.Deployment;
 import org.camunda.bpm.engine.test.ProcessEngineRule;
-
-import static org.camunda.bpm.engine.test.assertions.ProcessEngineTests.*;
-
 import org.junit.Rule;
 import org.junit.Test;
+
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+
+import static java.util.concurrent.CompletableFuture.supplyAsync;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.camunda.bpm.engine.test.assertions.ProcessEngineTests.runtimeService;
 
 /**
  * @author Daniel Meyer
@@ -27,25 +32,26 @@ import org.junit.Test;
  */
 public class SimpleTestCase {
 
-  @Rule
-  public ProcessEngineRule rule = new ProcessEngineRule();
+    @Rule
+    public ProcessEngineRule rule = new ProcessEngineRule();
 
-  @Test
-  @Deployment(resources = {"testProcess.bpmn"})
-  public void shouldExecuteProcess() {
-    // Given we create a new process instance
-    ProcessInstance processInstance = runtimeService().startProcessInstanceByKey("testProcess");
-    // Then it should be active
-    assertThat(processInstance).isActive();
-    // And it should be the only instance
-    assertThat(processInstanceQuery().count()).isEqualTo(1);
-    // And there should exist just a single task within that process instance
-    assertThat(task(processInstance)).isNotNull();
+    @Test
+    @Deployment(resources = {"testProcess.bpmn"})
+    public void logsExceptionThreeTimes() throws Exception {
+        runtimeService().startProcessInstanceByKey("testProcess");
 
-    // When we complete that task
-    complete(task(processInstance));
-    // Then the process instance should be ended
-    assertThat(processInstance).isEnded();
-  }
+        final List<Incident> incidents = supplyAsync(pollIncidents()).get(15, TimeUnit.SECONDS);
+        assertThat(incidents.size()).isEqualTo(1);
+        assertThat(incidents.get(0).getIncidentMessage()).contains("expected");
+    }
+
+    private Supplier<List<Incident>> pollIncidents() {
+        return () -> {
+            while (runtimeService().createIncidentQuery().count() < 1L) {
+                // no operation
+            }
+            return runtimeService().createIncidentQuery().list();
+        };
+    }
 
 }
