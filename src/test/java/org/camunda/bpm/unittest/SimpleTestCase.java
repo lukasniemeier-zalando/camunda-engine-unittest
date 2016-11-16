@@ -19,10 +19,9 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
-import static java.util.concurrent.CompletableFuture.supplyAsync;
+import static java.lang.Thread.sleep;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.camunda.bpm.engine.test.assertions.ProcessEngineTests.runtimeService;
 
@@ -37,21 +36,24 @@ public class SimpleTestCase {
 
     @Test
     @Deployment(resources = {"testProcess.bpmn"})
-    public void logsExceptionThreeTimes() throws Exception {
-        runtimeService().startProcessInstanceByKey("testProcess");
-
-        final List<Incident> incidents = supplyAsync(pollIncidents()).get(15, TimeUnit.SECONDS);
-        assertThat(incidents.size()).isEqualTo(1);
-        assertThat(incidents.get(0).getIncidentMessage()).contains("expected");
+    public void retryInsteadOfIncidentOnServiceTask() throws Exception {
+        test("testProcess");
     }
 
-    private Supplier<List<Incident>> pollIncidents() {
-        return () -> {
-            while (runtimeService().createIncidentQuery().count() < 1L) {
-                // no operation
-            }
-            return runtimeService().createIncidentQuery().list();
-        };
+    @Test
+    @Deployment(resources = {"testProcess2.bpmn"})
+    public void retryInsteadOfIncidentOnThrowEvent() throws Exception {
+        test("testProcess2");
+    }
+
+    private void test(final String key) throws InterruptedException {
+        runtimeService().startProcessInstanceByKey(key);
+
+        sleep(SECONDS.toMillis(30L));
+        final List<Incident> incidents = runtimeService().createIncidentQuery().list();
+
+        assertThat(incidents.size()).isEqualTo(0);
+        assertThat(FailingJob.ExecutionCount).isGreaterThan(1);
     }
 
 }

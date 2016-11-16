@@ -1,29 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <bpmn2:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="_7FrToMrfEeOyYYI9xhG4Cw" targetNamespace="http://camunda.org/schema/1.0/bpmn" exporter="Camunda Modeler" exporterVersion="1.4.0" xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd">
-  <bpmn2:process id="testProcess" isExecutable="true">
+  <bpmn2:process id="testProcess2" isExecutable="true">
     <bpmn2:startEvent id="start-1">
-      <bpmn2:outgoing>start-to-job</bpmn2:outgoing>
+      <bpmn2:outgoing>SequenceFlow_0dodcx0</bpmn2:outgoing>
     </bpmn2:startEvent>
-    <bpmn2:serviceTask id="job-1" name="Failing Job" camunda:asyncBefore="true" camunda:class="org.camunda.bpm.unittest.FailingJob">
+    <bpmn2:endEvent id="end-1">
+      <bpmn2:incoming>SequenceFlow_056cwrh</bpmn2:incoming>
+    </bpmn2:endEvent>
+    <bpmn2:sequenceFlow id="SequenceFlow_0dodcx0" sourceRef="start-1" targetRef="job-1" />
+    <bpmn2:intermediateThrowEvent id="job-1" camunda:asyncBefore="true">
       <bpmn2:extensionElements>
         <camunda:failedJobRetryTimeCycle>R10/PT5S</camunda:failedJobRetryTimeCycle>
       </bpmn2:extensionElements>
-      <bpmn2:incoming>start-to-job</bpmn2:incoming>
-      <bpmn2:outgoing>job-to-end</bpmn2:outgoing>
-    </bpmn2:serviceTask>
-    <bpmn2:endEvent id="end-1">
-      <bpmn2:incoming>job-to-end</bpmn2:incoming>
-    </bpmn2:endEvent>
-    <bpmn2:sequenceFlow id="start-to-job" sourceRef="start-1" targetRef="job-1" />
-    <bpmn2:sequenceFlow id="job-to-end" sourceRef="job-1" targetRef="end-1" />
+      <bpmn2:incoming>SequenceFlow_0dodcx0</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_056cwrh</bpmn2:outgoing>
+      <bpmn2:messageEventDefinition camunda:class="org.camunda.bpm.unittest.FailingJob" />
+    </bpmn2:intermediateThrowEvent>
+    <bpmn2:sequenceFlow id="SequenceFlow_056cwrh" sourceRef="job-1" targetRef="end-1" />
   </bpmn2:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
-    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="testProcess">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="testProcess2">
       <bpmndi:BPMNShape id="_BPMNShape_StartEvent_3" bpmnElement="start-1">
         <dc:Bounds x="247" y="204" width="36" height="36" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="ServiceTask_0hyyk8b_di" bpmnElement="job-1">
-        <dc:Bounds x="440" y="182" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="EndEvent_1e3kwod_di" bpmnElement="end-1">
         <dc:Bounds x="693" y="204" width="36" height="36" />
@@ -31,18 +29,24 @@
           <dc:Bounds x="711" y="240" width="0" height="0" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge id="SequenceFlow_09sd4pf_di" bpmnElement="start-to-job">
+      <bpmndi:BPMNEdge id="SequenceFlow_0dodcx0_di" bpmnElement="SequenceFlow_0dodcx0">
         <di:waypoint xsi:type="dc:Point" x="283" y="222" />
-        <di:waypoint xsi:type="dc:Point" x="440" y="222" />
+        <di:waypoint xsi:type="dc:Point" x="453" y="222" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="362" y="197" width="0" height="0" />
+          <dc:Bounds x="368" y="207" width="0" height="0" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="SequenceFlow_1iurj8g_di" bpmnElement="job-to-end">
-        <di:waypoint xsi:type="dc:Point" x="540" y="222" />
+      <bpmndi:BPMNShape id="IntermediateThrowEvent_0n9qfwc_di" bpmnElement="job-1">
+        <dc:Bounds x="453" y="204" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="471" y="240" width="0" height="0" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_056cwrh_di" bpmnElement="SequenceFlow_056cwrh">
+        <di:waypoint xsi:type="dc:Point" x="489" y="222" />
         <di:waypoint xsi:type="dc:Point" x="693" y="222" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="617" y="197" width="0" height="0" />
+          <dc:Bounds x="591" y="197" width="0" height="0" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
