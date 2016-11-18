@@ -12,18 +12,21 @@
  */
 package org.camunda.bpm.unittest;
 
-import org.camunda.bpm.engine.runtime.Incident;
-import org.camunda.bpm.engine.test.Deployment;
-import org.camunda.bpm.engine.test.ProcessEngineRule;
-import org.junit.Rule;
-import org.junit.Test;
-
-import java.util.List;
-
 import static java.lang.Thread.sleep;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.camunda.bpm.engine.test.assertions.ProcessEngineTests.runtimeService;
+
+import java.util.List;
+
+import org.camunda.bpm.engine.impl.cfg.ProcessEngineConfigurationImpl;
+import org.camunda.bpm.engine.runtime.Incident;
+import org.camunda.bpm.engine.runtime.Job;
+import org.camunda.bpm.engine.test.Deployment;
+import org.camunda.bpm.engine.test.ProcessEngineRule;
+import org.junit.Assert;
+import org.junit.Rule;
+import org.junit.Test;
 
 /**
  * @author Daniel Meyer
@@ -45,6 +48,29 @@ public class SimpleTestCase {
     public void retryInsteadOfIncidentOnThrowEvent() throws Exception {
         test("testProcess2");
     }
+
+    @Test
+    @Deployment(resources = {"testProcess2.bpmn"})
+    public void retryInsteadOfIncidentOnThrowEventFoo() throws Exception {
+      ((ProcessEngineConfigurationImpl) rule.getProcessEngine().getProcessEngineConfiguration()).getJobExecutor().shutdown();
+
+      runtimeService().startProcessInstanceByKey("testProcess2");
+
+      Job job = rule.getManagementService().createJobQuery().singleResult();
+      Assert.assertEquals(1, job.getRetries());
+
+      try {
+        rule.getManagementService().executeJob(job.getId());
+      } catch (RuntimeException e)
+      {
+
+      }
+
+      job = rule.getManagementService().createJobQuery().singleResult();
+      Assert.assertEquals(9, job.getRetries());
+
+    }
+
 
     private void test(final String key) throws InterruptedException {
         runtimeService().startProcessInstanceByKey(key);
